@@ -6,9 +6,6 @@ import { Schema } from "../amplify/data/resource";
 import { generateClient } from "aws-amplify/data";
 import outputs from "../amplify_outputs.json";
 
-
-import "@aws-amplify/ui-react/styles.css";
-
 Amplify.configure(outputs);
 
 const amplifyClient = generateClient<Schema>({
@@ -25,18 +22,27 @@ function App() {
 
     try {
       const formData = new FormData(event.currentTarget);
-      
+      const urls = formData.get("urls")?.toString().split(",") || [];
+      const email = formData.get("email")?.toString();
+
+      // Perform the risk analysis request
       const { data, errors } = await amplifyClient.queries.askBedrock({
-        ingredients: [formData.get("ingredients")?.toString() || ""],
+        urls: urls,
       });
 
       if (!errors) {
-        setResult(data?.body || "No data returned");
+        setResult(data?.body || "No risk data returned");
+
+        // Send report via email using the modified backend
+        await amplifyClient.mutations.sendRiskReport({
+          email: email,
+          report: data.body,
+        });
+
+        alert("Risk report has been sent to your email!");
       } else {
         console.log(errors);
       }
-
-  
     } catch (e) {
       alert(`An error occurred: ${e}`);
     } finally {
@@ -48,14 +54,11 @@ function App() {
     <div className="app-container">
       <div className="header-container">
         <h1 className="main-header">
-          Meet Your Personal
-          <br />
-          <span className="highlight">Recipe AI</span>
+          AI-Driven Church <br />
+          <span className="highlight">Risk Management Tool</span>
         </h1>
         <p className="description">
-          Simply type a few ingredients using the format ingredient1,
-          ingredient2, etc., and Recipe AI will generate an all-new recipe on
-          demand...
+          Enter website URLs and your email address to receive a detailed risk analysis report.
         </p>
       </div>
       <form onSubmit={onSubmit} className="form-container">
@@ -63,12 +66,20 @@ function App() {
           <input
             type="text"
             className="wide-input"
-            id="ingredients"
-            name="ingredients"
-            placeholder="Ingredient1, Ingredient2, Ingredient3,...etc"
+            id="urls"
+            name="urls"
+            placeholder="https://example.com, https://anotherchurch.org"
+          />
+          <input
+            type="email"
+            className="wide-input"
+            id="email"
+            name="email"
+            placeholder="Enter your email address"
+            required
           />
           <button type="submit" className="search-button">
-            Generate
+            Analyze Risks & Send Report
           </button>
         </div>
       </form>
@@ -77,8 +88,6 @@ function App() {
           <div className="loader-container">
             <p>Loading...</p>
             <Loader size="large" />
-            <Placeholder size="large" />
-            <Placeholder size="large" />
             <Placeholder size="large" />
           </div>
         ) : (
