@@ -1,19 +1,13 @@
 import * as cdk from 'aws-cdk-lib';
+import { auth } from './auth/resource';
+import { data } from './data/resource';
 import { Construct } from 'constructs';
-import { Data } from './data/resource'; 
-import { Auth } from './auth/resource';
 
-export class BackendStack extends cdk.Stack {
+export class Backend extends cdk.Stack {
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        // Initialize the data and authentication resources
-        const data = new Data(this, 'Data');
-        const auth = new Auth(this, 'Auth');
-
-        // Ensure API Gateway and Lambda integration
-        new cdk.CfnOutput(this, 'APIEndpoint', {
-            value: data.api.url ?? 'API URL Not Found'
-        });
+        const authResource = auth(this);
+        const dataResource = data(this);
     }
 }
