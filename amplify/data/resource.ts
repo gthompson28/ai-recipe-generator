@@ -1,23 +1,29 @@
-import * as cdk from 'aws-cdk-lib';
-import { Construct } from 'constructs';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as apiGateway from 'aws-cdk-lib/aws-apigateway';
+import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
-export function data(scope: Construct) {
-    const lambdaFunction = new lambda.Function(scope, 'RiskAnalysisLambda', {
-        runtime: lambda.Runtime.NODEJS_18_X,
-        handler: 'index.handler',
-        code: lambda.Code.fromAsset('lambda'),
-        timeout: cdk.Duration.seconds(60),
-    });
+const schema = a.schema({
+  BedrockResponse: a.customType({
+    body: a.string(),
+    error: a.string(),
+  }),
 
-    const api = new apiGateway.RestApi(scope, 'ChurchRiskApi', {
-        restApiName: 'Church Risk Management API',
-    });
+  askBedrock: a
+    .query()
+    .arguments({ ingredients: a.string().array() })
+    .returns(a.ref("BedrockResponse"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(
+      a.handler.custom({ entry: "./bedrock.js", dataSource: "bedrockDS" })
+    ),
+});
 
-    api.root.addMethod('POST', new apiGateway.LambdaIntegration(lambdaFunction));
+export type Schema = ClientSchema<typeof schema>;
 
-    return {
-        api,
-    };
-}
+export const data = defineData({
+  schema,
+  authorizationModes: {
+    defaultAuthorizationMode: "apiKey",
+    apiKeyAuthorizationMode: {
+      expiresInDays: 30,
+    },
+  },
+});

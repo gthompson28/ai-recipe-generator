@@ -1,9 +1,9 @@
 export function request(ctx) {
-    const { urls = [] } = ctx.args;
-
-    // Construct the prompt with the provided URLs
-    const prompt = `Analyze the following church websites for potential risks in the categories of Cybersecurity, Reputational, Operational, Physical, and Financial: ${urls.join(", ")}. Provide a detailed report on each category per URL.`;
-
+    const { ingredients = [] } = ctx.args;
+  
+    // Construct the prompt with the provided ingredients
+    const prompt = `Suggest a recipe idea using these ingredients: ${ingredients.join(", ")}.`;
+  
     // Return the request configuration
     return {
       resourcePath: `/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke`,
@@ -29,13 +29,15 @@ export function request(ctx) {
         }),
       },
     };
-}
-
-export function response(ctx) {
+  }
+  
+  export function response(ctx) {
     // Parse the response body
     const parsedBody = JSON.parse(ctx.result.body);
+    // Extract the text content from the response
     const res = {
       body: parsedBody.content[0].text,
     };
+    // Return the response
     return res;
-}
+  }

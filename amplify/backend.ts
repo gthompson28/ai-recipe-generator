@@ -1,13 +1,30 @@
-import * as cdk from 'aws-cdk-lib';
-import { auth } from './auth/resource';
-import { data } from './data/resource';
-import { Construct } from 'constructs';
+import { defineBackend } from "@aws-amplify/backend";
+import { data } from "./data/resource";
+import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { auth } from "./auth/resource";
 
-export class Backend extends cdk.Stack {
-    constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-        super(scope, id, props);
+const backend = defineBackend({
+  auth,
+  data,
+});
 
-        const authResource = auth(this);
-        const dataResource = data(this);
-    }
-}
+const bedrockDataSource = backend.data.resources.graphqlApi.addHttpDataSource(
+  "bedrockDS",
+  "https://bedrock-runtime.us-east-1.amazonaws.com",
+  {
+    authorizationConfig: {
+      signingRegion: "us-east-1",
+      signingServiceName: "bedrock",
+    },
+  }
+);
+
+bedrockDataSource.grantPrincipal.addToPrincipalPolicy(
+  new PolicyStatement({
+    resources: [
+      "arn:aws:bedrock:us-east-1::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0",
+    ],
+    actions: ["bedrock:InvokeModel"],
+    
+  })
+);
