@@ -1,29 +1,30 @@
-import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import * as cdk from 'aws-cdk-lib';
+import { Construct } from 'constructs';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 
-const schema = a.schema({
-  BedrockResponse: a.customType({
-    body: a.string(),
-    error: a.string(),
-  }),
+export class Data extends Construct {
+    public readonly api: apigateway.RestApi;
 
-  askBedrock: a
-    .query()
-    .arguments({ ingredients: a.string().array() })
-    .returns(a.ref("BedrockResponse"))
-    .authorization((allow) => [allow.authenticated()])
-    .handler(
-      a.handler.custom({ entry: "./bedrock.js", dataSource: "bedrockDS" })
-    ),
-});
+    constructor(scope: Construct, id: string) {
+        super(scope, id);
 
-export type Schema = ClientSchema<typeof schema>;
+        // Lambda function for risk analysis
+        const riskAnalysisLambda = new lambda.Function(this, 'RiskAnalysisLambda', {
+            runtime: lambda.Runtime.NODEJS_20_X,
+            handler: 'bedrock.handler',
+            code: lambda.Code.fromAsset('amplify/data'), 
+            environment: {
+                ANALYSIS_MODEL: 'anthropic.claude-3-sonnet-20240229-v1:0'
+            }
+        });
 
-export const data = defineData({
-  schema,
-  authorizationModes: {
-    defaultAuthorizationMode: "apiKey",
-    apiKeyAuthorizationMode: {
-      expiresInDays: 30,
-    },
-  },
-});
+        // API Gateway integration
+        this.api = new apigateway.RestApi(this, 'ChurchRiskApi', {
+            restApiName: 'ChurchRiskManagementAPI',
+        });
+
+        const riskResource = this.api.root.addResource('analyze');
+        riskResource.addMethod('POST', new apigateway.LambdaIntegration(riskAnalysisLambda));
+    }
+}
