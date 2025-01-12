@@ -1,6 +1,6 @@
 import AWS from 'aws-sdk';
 
-const ses = new AWS.SES({ region: 'us-east-1' }); // Replace with your region
+const ses = new AWS.SES({ region: 'us-east-1' }); // Ensure the region matches your AWS setup
 
 export async function request(ctx) {
     const { urls = [] } = ctx.args;
@@ -20,12 +20,7 @@ export async function request(ctx) {
                 messages: [
                     {
                         role: "user",
-                        content: [
-                            {
-                                type: "text",
-                                text: `\n\nHuman: ${prompt}\n\nAssistant:`,
-                            },
-                        ],
+                        content: [{ type: "text", text: `\n\nHuman: ${prompt}\n\nAssistant:` }],
                     },
                 ],
             }),
@@ -33,37 +28,23 @@ export async function request(ctx) {
     };
 }
 
-export function response(ctx) {
-    const parsedBody = JSON.parse(ctx.result.body);
-    const resultText = parsedBody.content[0].text;
-    return {
-        body: resultText
-    };
-}
-
-// New function to send risk report via SES
 export async function sendRiskReport(ctx) {
     const { email, report } = ctx.args;
 
     const params = {
-        Source: "your-verified-email@yourchurchdomain.com",
-        Destination: {
-            ToAddresses: [email],
-        },
+        Source: "your-verified-email@yourdomain.com",  // Ensure this is your verified SES email
+        Destination: { ToAddresses: [email] },
         Message: {
-            Subject: { Data: "Your Church Risk Management Report" },
-            Body: {
-                Text: { Data: report },
-            },
+            Subject: { Data: "Church Risk Management Report" },
+            Body: { Text: { Data: report } },
         },
     };
 
     try {
         await ses.sendEmail(params).promise();
-        console.log("Email sent successfully!");
         return { body: "Email sent successfully!" };
     } catch (error) {
         console.error("Failed to send email:", error);
-        return { body: `Failed to send email: ${error.message}` };
+        return { body: `Error sending email: ${error.message}` };
     }
 }
