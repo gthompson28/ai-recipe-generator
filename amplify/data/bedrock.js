@@ -1,10 +1,14 @@
 import AWS from 'aws-sdk';
 
-const ses = new AWS.SES({ region: 'us-east-1' }); // Ensure the region matches your AWS setup
+const ses = new AWS.SES({ region: 'us-east-1' }); // Confirm this region matches your SES setup
 
 export async function request(ctx) {
     const { urls = [] } = ctx.args;
   
+    if (!urls.length) {
+        throw new Error("No URLs provided for risk analysis.");
+    }
+
     const prompt = `Analyze the following websites for risk factors across the five categories: Cybersecurity, Reputational, Operational, Physical, and Financial. Websites: ${urls.join(", ")}. Provide a detailed summary highlighting specific risks in each category.`;
   
     return {
@@ -28,11 +32,23 @@ export async function request(ctx) {
     };
 }
 
+export async function response(ctx) {
+    const parsedBody = JSON.parse(ctx.result.body);
+    if (!parsedBody.content || !parsedBody.content[0].text) {
+        throw new Error("Invalid response from Bedrock API");
+    }
+    return { body: parsedBody.content[0].text };
+}
+
 export async function sendRiskReport(ctx) {
     const { email, report } = ctx.args;
 
+    if (!email || !report) {
+        throw new Error("Email or report content missing.");
+    }
+
     const params = {
-        Source: "your-verified-email@yourdomain.com",  // Ensure this is your verified SES email
+        Source: "support@mindshiftcreators.com",  // Replace with your SES-verified email
         Destination: { ToAddresses: [email] },
         Message: {
             Subject: { Data: "Church Risk Management Report" },
