@@ -1,0 +1,9 @@
+type Mutation {
+	sendRiskReport(email: String!, report: String!): String
+}
+
+type Query {
+	askBedrock(websiteURL: String!): BedrockResponse
+		@aws_cognito_user_pools
+@aws_iam
+}
