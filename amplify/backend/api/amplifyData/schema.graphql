@@ -5,5 +5,5 @@ type Mutation {
 type Query {
 	askBedrock(websiteURL: String!): BedrockResponse
 		@aws_cognito_user_pools
-@aws_iam
+        @aws_iam
 }
